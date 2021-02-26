@@ -1,5 +1,12 @@
 let pagina = 1;
 
+const cita = {
+    nombre: '',
+    fecha: '',
+    hora: '',
+    servicios: []
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     iniciarApp();
 });
@@ -20,6 +27,15 @@ function iniciarApp() {
 
     // Comprueba página actual para ocultar la paginación
     botonesPaginador();
+
+    // Resumen de la cita | Mensaje de error
+    mostrarResumen();
+
+    // Almacena el nombre de la cita en el objeto
+    nombreCita();
+
+    // Almacenar la fecha de la cita en el objeto
+    fechaCita();
 
 }
 
@@ -89,6 +105,7 @@ async function mostrarServicios() {
            // Generar div contenedor servicio
            const servicioDiv = document.createElement('DIV')
             servicioDiv.classList.add('servicio');
+            servicioDiv.dataset.idServicio = id;
 
             // Seleccionar servicios
             servicioDiv.onclick = seleccionarServicio; //onclick es un eventhandler. Se utiliza mayormente en código creado en JS, mientras que addeventlistener en código ya existente.
@@ -114,12 +131,39 @@ function seleccionarServicio(e) {
     } else {
        elemento = e.target;
     }
+    
+    if(elemento.classList.contains('seleccionado')){
+            elemento.classList.remove('seleccionado');
 
-   if(elemento.classList.contains('seleccionado')){
-        elemento.classList.remove('seleccionado');
-    } else {
-        elemento.classList.add('seleccionado');
-    } 
+            const id = parseInt( elemento.dataset.idServicio );
+
+            eliminarServicio(id);
+        } else {
+            elemento.classList.add('seleccionado');
+
+            
+            const servicioObj = {
+                id: parseInt( elemento.dataset.idServicio ),
+                nombre: elemento.firstElementChild.textContent,
+                precio: elemento.firstElementChild.nextElementSibling.textContent
+            }
+        
+            agregarServicio(servicioObj);
+        } 
+}
+
+function eliminarServicio(id) {
+    const { servicios } = cita;
+    cita.servicios = servicios.filter( servicio => servicio.id !== id);
+
+    console.log(cita);
+}
+
+function agregarServicio(servicioObj) {
+    const { servicios } = cita;
+    cita.servicios = [...servicios, servicioObj];
+
+    console.log(cita);
 }
 
 /* Paginacion */
@@ -156,4 +200,90 @@ function botonesPaginador() {
     }
 
     mostrarSeccion();
+}
+
+function mostrarResumen() {
+    // Destructuring
+    const {nombre, fecha, hora, servicios} = cita;
+
+    // Seleccionar resumen
+    const resumenDiv = document.querySelector('.contenido-resumen');
+
+
+    // Validación de objeto
+    if(Object.values(cita).includes('')) {
+       const noServicios = document.createElement('P');
+       noServicios.textContent = 'Faltan rellenar datos: Hora, Fecha o Nombre'
+       noServicios.classList.add('invalidar-cita');
+
+       
+
+       // agregar a resumenDiv
+       resumenDiv.appendChild(noServicios);
+    }
+}
+
+function nombreCita() {
+    const nombreInput = document.querySelector('#nombre');
+
+    nombreInput.addEventListener('input', e => {
+        const nombreTexto = e.target.value.trim();
+        
+        // Valideación que nombreTexto debe tener caracteres
+
+        if(nombreTexto === '' || nombreTexto.length < 3) {
+            mostrarAlerta('Nombre no valido', 'error');
+        } else {
+            const alerta = document.querySelector('.alerta');
+            if(alerta) {
+                alerta.remove();
+            }
+            cita.nombre = nombreTexto;
+        }
+    });
+}
+
+function mostrarAlerta(mensaje, tipo) {
+
+    // Solo mostrar UNA alerta
+    const alertaPrevia = document.querySelector('.alerta');
+    if(alertaPrevia) {
+        return;
+    }
+
+    const alerta = document.createElement('DIV');
+    alerta.textContent = mensaje;
+    alerta.classList.add('alerta');
+
+    if( tipo === 'error' ) {
+        alerta.classList.add('error');
+    }
+
+    // Colocar en el HTML
+    const formulario = document.querySelector('.formulario');
+    formulario.appendChild(alerta);
+
+    // Eliminar alerta luego de 3sec
+    setTimeout(() => {
+        alerta.remove();
+    }, 3000);
+}
+
+function fechaCita() {
+    const fechaInput = document.querySelector('#fecha');
+    fechaInput.addEventListener('input', e =>  {
+
+        const dia = new Date(e.target.value).getUTCDay();
+        
+        if([0, 6].includes(dia)){
+            e.preventDefault();
+            fechaInput.value = '';
+            mostrarAlerta('Fines de semana no validos', 'error');
+        } else {
+            cita.fecha = fechaInput.value;
+
+            console.log(cita);
+        }
+
+    });
 }
